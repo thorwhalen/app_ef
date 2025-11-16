@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app_ef_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./backend/app:/app/app  # Hot-reload for development
+    environment:
+      - ENVIRONMENT=local
+      - STORAGE_BACKEND=filesystem
+      - LOCAL_STORAGE_PATH=/app/data
+      - LOG_LEVEL=DEBUG
+      - DEBUG=True
+      - ALLOWED_ORIGINS=["http://localhost:3000","http://localhost"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - app_ef_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: app_ef_frontend
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - app_ef_network
+
+networks:
+  app_ef_network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local
