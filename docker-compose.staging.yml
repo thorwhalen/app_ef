@@ -1,0 +1,115 @@
+version: '3.8'
+
+# Staging deployment configuration for app_ef
+# This configuration is designed for staging/testing environments
+# that mimic production settings
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app_ef_backend_staging
+    ports:
+      - "8000:8000"
+    environment:
+      # Environment
+      - ENVIRONMENT=staging
+      - DEBUG=false
+
+      # Authentication (ENABLED for staging)
+      - ENABLE_AUTH=true
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-staging-secret-key-change-in-production}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+      # Storage (can be filesystem or S3)
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-filesystem}
+      - DATA_DIR=/app/data
+
+      # AWS S3 (if using S3 backend)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET:-app-ef-staging-data}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+
+      # CORS
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://localhost:80,https://staging.yourdomain.com}
+
+    volumes:
+      # Persistent data storage (for filesystem backend)
+      - staging-data:/app/data
+
+      # Logs
+      - ./logs/backend:/app/logs
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    networks:
+      - app_ef_network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    container_name: app_ef_frontend_staging
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app_ef_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Nginx reverse proxy for SSL termination
+  nginx:
+    image: nginx:alpine
+    container_name: app_ef_nginx_staging
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/staging.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - app_ef_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Only start if nginx config exists
+    profiles:
+      - with-ssl
+
+volumes:
+  staging-data:
+    driver: local
+
+networks:
+  app_ef_network:
+    driver: bridge
