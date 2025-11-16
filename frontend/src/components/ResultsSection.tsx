@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useVisualizationData, useSegments, useClusters } from '@/hooks/useResults'
+import SimpleScatterPlot from './SimpleScatterPlot'
 
 interface ResultsSectionProps {
   projectId: string
@@ -87,7 +88,6 @@ export default function ResultsSection({ projectId }: ResultsSectionProps) {
 }
 
 function VisualizationView({ data }: { data: any }) {
-  // Simple scatter plot visualization (placeholder for Plotly)
   const dimensions = data.embeddings[0]?.length || 0
   const numClusters = data.metadata?.num_clusters || 0
 
@@ -110,25 +110,23 @@ function VisualizationView({ data }: { data: any }) {
         </div>
       </div>
 
-      <div className="bg-white border-2 border-gray-200 rounded-lg p-8 text-center">
-        <div className="text-4xl mb-4">📊</div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Interactive Visualization
-        </h3>
-        <p className="text-gray-600 mb-4">
-          {dimensions === 2 ? '2D' : '3D'} scatter plot of embeddings with cluster coloring
-        </p>
-        <p className="text-sm text-gray-500">
-          Interactive visualization with Plotly will be added in the next update
-        </p>
-        <div className="mt-6 flex justify-center space-x-3">
-          <button className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded font-medium">
-            Export as PNG
-          </button>
-          <button className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded font-medium">
-            Export Data
-          </button>
-        </div>
+      <SimpleScatterPlot
+        data={{
+          embeddings: data.embeddings,
+          clusters: data.clusters,
+          labels: data.labels,
+        }}
+        width={700}
+        height={500}
+      />
+
+      <div className="mt-4 flex justify-center space-x-3">
+        <button className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded font-medium transition-colors">
+          📥 Export as PNG
+        </button>
+        <button className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded font-medium transition-colors">
+          📊 Export Data
+        </button>
       </div>
     </div>
   )

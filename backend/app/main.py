@@ -8,6 +8,7 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.api.v1 import projects, sources, components, pipelines, results
+from app.api import websockets
 from app.models.api_models import HealthResponse
 
 
@@ -59,6 +60,9 @@ app.include_router(
 )
 app.include_router(
     results.router, prefix=settings.api_v1_prefix, tags=["results"]
+)
+app.include_router(
+    websockets.router, tags=["websockets"]
 )
 
 
