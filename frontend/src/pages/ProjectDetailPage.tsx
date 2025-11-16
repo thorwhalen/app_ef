@@ -1,10 +1,15 @@
 import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
 import { useProject, useProjectSummary } from '@/hooks/useProjects'
+import SourcesSection from '@/components/SourcesSection'
+import PipelinesSection from '@/components/PipelinesSection'
+import ResultsSection from '@/components/ResultsSection'
 
 export default function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const { data: project, isLoading: projectLoading } = useProject(projectId!)
   const { data: summary, isLoading: summaryLoading } = useProjectSummary(projectId!)
+  const [activeTab, setActiveTab] = useState<'sources' | 'pipelines' | 'results'>('sources')
 
   const isLoading = projectLoading || summaryLoading
 
@@ -72,49 +77,47 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* Sections */}
-        <div className="grid gap-6">
-          <Section title="Sources" icon="📄">
-            <p className="text-gray-500">
-              Upload and manage source documents for embedding
-            </p>
-            <button className="mt-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md font-medium transition-colors">
-              Add Sources (Coming Soon)
+        {/* Tabs */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('sources')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'sources'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📄 Sources
             </button>
-          </Section>
+            <button
+              onClick={() => setActiveTab('pipelines')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'pipelines'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              ⚙️ Pipelines
+            </button>
+            <button
+              onClick={() => setActiveTab('results')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'results'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📊 Results
+            </button>
+          </nav>
+        </div>
 
-          <Section title="Pipelines" icon="⚙️">
-            <p className="text-gray-500">
-              Create and manage embedding pipelines
-            </p>
-            {summary && summary.pipelines.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {summary.pipelines.map((pipeline) => (
-                  <div
-                    key={pipeline}
-                    className="bg-gray-50 px-4 py-2 rounded flex items-center justify-between"
-                  >
-                    <span className="font-medium text-gray-900">{pipeline}</span>
-                    <button className="text-indigo-600 hover:text-indigo-700 text-sm">
-                      View →
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button className="mt-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md font-medium transition-colors">
-              Create Pipeline (Coming Soon)
-            </button>
-          </Section>
-
-          <Section title="Results" icon="📊">
-            <p className="text-gray-500">
-              View and visualize embedding results
-            </p>
-            <button className="mt-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md font-medium transition-colors">
-              View Results (Coming Soon)
-            </button>
-          </Section>
+        {/* Tab Content */}
+        <div className="bg-white rounded-lg shadow p-6">
+          {activeTab === 'sources' && <SourcesSection projectId={projectId!} />}
+          {activeTab === 'pipelines' && <PipelinesSection projectId={projectId!} />}
+          {activeTab === 'results' && <ResultsSection projectId={projectId!} />}
         </div>
       </div>
     </div>
@@ -135,22 +138,3 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
   )
 }
 
-function Section({
-  title,
-  icon,
-  children,
-}: {
-  title: string
-  icon: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center mb-4">
-        <span className="text-2xl mr-2">{icon}</span>
-        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-      </div>
-      <div>{children}</div>
-    </div>
-  )
-}

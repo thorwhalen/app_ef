@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 from app.core.config import settings
-from app.api.v1 import projects
+from app.api.v1 import projects, sources, components, pipelines, results
 from app.models.api_models import HealthResponse
 
 
@@ -47,6 +47,18 @@ app.add_middleware(
 # Include routers
 app.include_router(
     projects.router, prefix=f"{settings.api_v1_prefix}/projects", tags=["projects"]
+)
+app.include_router(
+    sources.router, prefix=settings.api_v1_prefix, tags=["sources"]
+)
+app.include_router(
+    components.router, prefix=f"{settings.api_v1_prefix}/components", tags=["components"]
+)
+app.include_router(
+    pipelines.router, prefix=settings.api_v1_prefix, tags=["pipelines"]
+)
+app.include_router(
+    results.router, prefix=settings.api_v1_prefix, tags=["results"]
 )
 
 
