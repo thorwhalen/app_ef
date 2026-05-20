@@ -100,3 +100,6 @@ temp/
 *.tmp
 *.bak
 *.swp
+
+# Session handoff notes (local only)
+.claude/handoffs/
