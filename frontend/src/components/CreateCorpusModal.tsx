@@ -106,6 +106,11 @@ export function CreateCorpusModal({
             onChange={(e) => setEmbedder(e.target.value)}
             placeholder="hashing (dependency-free default)"
           />
+          <p className="text-xs text-muted-foreground">
+            The default <code>hashing</code> embedder matches word overlap, not
+            meaning. For semantic search, use a model such as{' '}
+            <code>openai:text-embedding-3-small</code>.
+          </p>
         </div>
 
         <div className="flex justify-end gap-2">
