@@ -65,9 +65,11 @@ export function SearchSurface() {
                     </Badge>
                     <div className="min-w-0">
                       <p className="text-sm">{hit.segment.text}</p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        source {hit.source_id.slice(0, 12)}
-                      </p>
+                      {hit.source_id != null && (
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          source {hit.source_id.slice(0, 12)}
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

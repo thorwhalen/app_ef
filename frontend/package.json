@@ -8,9 +8,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "gen:api": "openapi-typescript src/api/openapi.json -o src/api/openapi.d.ts"
   },
   "dependencies": {
+    "@zodal/core": "link:../../../i/_zodals/zodal/packages/core",
+    "@zodal/store": "link:../../../i/_zodals/zodal/packages/store",
+    "@zodal/ui": "link:../../../i/_zodals/zodal/packages/ui",
+    "@zodal/ui-shadcn": "link:../../../i/_zodals/zodal-ui-shadcn",
     "acture": "^1.2.1",
     "acture-hotkeys": "^1.0.0",
     "acture-palette-react": "^1.0.0",
@@ -21,11 +26,7 @@
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.6.0",
     "zod": "^4.0.0",
-    "zustand": "^5.0.0",
-    "@zodal/core": "link:../../../i/_zodals/zodal/packages/core",
-    "@zodal/ui": "link:../../../i/_zodals/zodal/packages/ui",
-    "@zodal/store": "link:../../../i/_zodals/zodal/packages/store",
-    "@zodal/ui-shadcn": "link:../../../i/_zodals/zodal-ui-shadcn"
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "openapi-typescript": "^7.13.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
