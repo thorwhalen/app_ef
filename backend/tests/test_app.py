@@ -7,13 +7,17 @@ applied, and the ``EfService`` is injectable — not the embedding/search logic
 itself (that is tested in ``ef``).
 """
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ef.service import EfService
 
 from app.main import (
+    FALLBACK_EMBEDDER,
+    MODEL_EMBEDDER,
     SERVICE_METHODS,
+    _resolve_default_embedder,
     build_app,
 )
 
@@ -22,7 +26,14 @@ SOURCES = ["the cat sat on the mat", "dogs are loyal", "felines and canines"]
 
 
 def _client(**build_kwargs) -> TestClient:
-    """A TestClient over a freshly built app."""
+    """A TestClient over a freshly built app.
+
+    Defaults to the dependency-free ``hashing`` embedder so these smoke tests
+    never reach a network embedding backend — regardless of the ambient
+    ``OPENAI_API_KEY`` / ``APP_EF_EMBEDDER`` environment, which would otherwise
+    make ``_resolve_default_embedder`` pick the OpenAI model embedder.
+    """
+    build_kwargs.setdefault("default_embedder", "hashing")
     return TestClient(build_app(**build_kwargs))
 
 
@@ -127,9 +138,44 @@ def test_cors_origins_are_configurable():
 
 def test_service_is_injectable():
     """A pre-seeded EfService can be injected — the registry is on the instance."""
-    service = EfService()
+    service = EfService()  # no args → the offline hashing default
     service.create_corpus(SOURCES, corpus_id="seeded")
 
     client = TestClient(build_app(service=service))
     listed = client.post("/list_corpora", json={})
     assert [c["corpus_id"] for c in listed.json()] == ["seeded"]
+
+
+# ---------------------------------------------------------------------------
+# default embedder — the start-up semantic-search policy
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_default_embedder_honours_explicit_override(monkeypatch):
+    """APP_EF_EMBEDDER wins over the OpenAI-key auto-resolution."""
+    monkeypatch.setenv("APP_EF_EMBEDDER", "cohere:embed-v3")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-irrelevant")
+    assert _resolve_default_embedder() == "cohere:embed-v3"
+
+
+def test_resolve_default_embedder_picks_model_when_key_present(monkeypatch):
+    """With an OpenAI key and no override, the model embedder is the default."""
+    monkeypatch.delenv("APP_EF_EMBEDDER", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-irrelevant")
+    assert _resolve_default_embedder() == MODEL_EMBEDDER
+
+
+def test_resolve_default_embedder_falls_back_to_hashing_and_warns(monkeypatch):
+    """With no key and no override, it falls back to hashing — loudly."""
+    monkeypatch.delenv("APP_EF_EMBEDDER", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    with pytest.warns(RuntimeWarning, match="word overlap"):
+        assert _resolve_default_embedder() == FALLBACK_EMBEDDER
+
+
+def test_build_app_default_embedder_is_used_for_new_corpora():
+    """build_app(default_embedder=...) sets the embedder new corpora resolve."""
+    client = _client(default_embedder="hashing")
+    client.post("/create_corpus", json={"sources": SOURCES, "corpus_id": "c"})
+    info = client.post("/corpus_info", json={"corpus_id": "c"}).json()
+    assert info["embedder"] == "hashing:v1@512"

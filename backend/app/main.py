@@ -13,6 +13,12 @@ transport, no orchestration:
 No persistence and no auth this round: corpora are in-memory and per-process —
 a server restart drops them.
 
+The embedder a new corpus uses when the request names none is resolved once at
+start-up by :func:`_resolve_default_embedder`: ``openai:text-embedding-3-small``
+when ``OPENAI_API_KEY`` is set (real semantic search out of the box), else the
+dependency-free ``hashing`` embedder (lexical word overlap). Set
+``APP_EF_EMBEDDER`` to override.
+
 Run it::
 
     cd backend && uvicorn app.main:app --reload
@@ -24,6 +30,7 @@ they are never ``pip install``ed.
 from __future__ import annotations
 
 import os
+import warnings
 from collections.abc import Sequence
 
 from fastapi import FastAPI
@@ -42,6 +49,20 @@ DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
 
 #: Env var holding a comma-separated CORS origin allowlist (overrides the default).
 CORS_ORIGINS_ENVVAR = "APP_EF_CORS_ORIGINS"
+
+#: Env var naming the embedder new corpora use when the request names none —
+#: an explicit operator override, any string ``ef``'s DI seam resolves.
+EMBEDDER_ENVVAR = "APP_EF_EMBEDDER"
+
+#: Env var the OpenAI SDK reads for its key; its presence enables the model
+#: embedder as the auto-resolved default.
+OPENAI_KEY_ENVVAR = "OPENAI_API_KEY"
+
+#: The embedder used for real semantic search when an OpenAI key is available.
+MODEL_EMBEDDER = "openai:text-embedding-3-small"
+
+#: The dependency-free lexical embedder — the fallback when no model is available.
+FALLBACK_EMBEDDER = "hashing"
 
 #: The :class:`~ef.service.EfService` methods exposed over HTTP, in API order.
 SERVICE_METHODS: tuple[str, ...] = (
@@ -63,9 +84,45 @@ def _env_cors_origins() -> tuple[str, ...] | None:
     return tuple(origin.strip() for origin in raw.split(",") if origin.strip())
 
 
+def _resolve_default_embedder() -> str:
+    """Pick the embedder new corpora use when a ``create_corpus`` names none.
+
+    ``ef`` keeps a dependency-free ``hashing`` embedder as *its* default — but
+    hashing matches word overlap, not meaning. ``app_ef`` is an embedding-search
+    app, so it resolves a *semantic* default at start-up, in this order:
+
+    1. the :data:`EMBEDDER_ENVVAR` (``APP_EF_EMBEDDER``) env var, if set — an
+       explicit operator override (any string ``ef``'s DI seam resolves:
+       ``"hashing"``, ``"cohere:..."``, an ``http(s)://`` URL, …);
+    2. else :data:`MODEL_EMBEDDER` (``openai:text-embedding-3-small``) when an
+       ``OPENAI_API_KEY`` is present — real semantic search out of the box;
+    3. else :data:`FALLBACK_EMBEDDER` (``hashing``) — the dependency-free lexical
+       fallback, emitting a :class:`RuntimeWarning` so the degraded mode is loud.
+
+    Returns:
+        the embedder string handed to :class:`~ef.service.EfService` as its
+        per-instance ``default_embedder``.
+    """
+    explicit = os.environ.get(EMBEDDER_ENVVAR, "").strip()
+    if explicit:
+        return explicit
+    if os.environ.get(OPENAI_KEY_ENVVAR, "").strip():
+        return MODEL_EMBEDDER
+    warnings.warn(
+        f"Neither {OPENAI_KEY_ENVVAR} nor {EMBEDDER_ENVVAR} is set — new corpora "
+        f"will use the {FALLBACK_EMBEDDER!r} embedder, which matches word overlap, "
+        f"not meaning. Set {OPENAI_KEY_ENVVAR} for real semantic search, or set "
+        f"{EMBEDDER_ENVVAR} to choose another embedder.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+    return FALLBACK_EMBEDDER
+
+
 def build_app(
     service: EfService | None = None,
     *,
+    default_embedder: str | None = None,
     cors_origins: Sequence[str] | None = None,
 ) -> FastAPI:
     """Build the ``app_ef`` FastAPI backend.
@@ -73,7 +130,13 @@ def build_app(
     Args:
         service: the :class:`~ef.service.EfService` to expose. ``None`` → a
             fresh one (the production default — one corpus registry per
-            process). Injectable so tests can pass a pre-seeded service.
+            process). Injectable so tests can pass a pre-seeded service; an
+            injected service carries its own ``default_embedder``, so
+            ``default_embedder`` below is ignored when ``service`` is given.
+        default_embedder: the embedder new corpora use when the request names
+            none. ``None`` → :func:`_resolve_default_embedder` (the production
+            default — a model embedder when an OpenAI key is present). Only
+            consulted when ``service`` is ``None``.
         cors_origins: the CORS origin allowlist. ``None`` → the
             ``APP_EF_CORS_ORIGINS`` env var if set, else
             :data:`DEFAULT_CORS_ORIGINS`.
@@ -83,7 +146,13 @@ def build_app(
         endpoints, with CORS, a ``/health`` check and the ``qh``-generated
         ``/docs`` + ``/openapi.json``.
     """
-    service = service if service is not None else EfService()
+    if service is None:
+        embedder = (
+            default_embedder
+            if default_embedder is not None
+            else _resolve_default_embedder()
+        )
+        service = EfService(default_embedder=embedder)
     origins = list(
         cors_origins
         if cors_origins is not None

@@ -104,12 +104,13 @@ export function CreateCorpusModal({
             id="cc-emb"
             value={embedder}
             onChange={(e) => setEmbedder(e.target.value)}
-            placeholder="hashing (dependency-free default)"
+            placeholder="leave blank for the server default"
           />
           <p className="text-xs text-muted-foreground">
-            The default <code>hashing</code> embedder matches word overlap, not
-            meaning. For semantic search, use a model such as{' '}
-            <code>openai:text-embedding-3-small</code>.
+            Leave blank to use the server's default embedder. Override with a
+            model such as <code>openai:text-embedding-3-small</code> for
+            semantic search, or <code>hashing</code> for a dependency-free
+            lexical match.
           </p>
         </div>
 
