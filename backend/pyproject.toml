@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "app-ef-backend"
+version = "0.2.0"
+description = "Thin HTTP transport exposing ef.EfService over qh.mk_app() — the app_ef backend."
+requires-python = ">=3.10"
+# `ef` and `qh` are local editable installs (the embeddings package group, via
+# the .pth manifest) — they provide all embedding/search logic and are never
+# pip-installed. Only third-party deps are declared here.
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "httpx"]
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

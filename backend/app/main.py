@@ -1,87 +1,116 @@
+"""The ``app_ef`` backend — wires :class:`ef.service.EfService` to HTTP.
+
+``app_ef`` is UI-only over ``ef`` (group policy: all logic lives in ``ef``,
+``app_ef`` is presentation). This module is the *whole* backend — pure
+transport, no orchestration:
+
+* one :class:`~ef.service.EfService` is constructed per process; it holds the
+  live ``{corpus_id: SourceManager}`` registry,
+* its seven JSON-friendly methods are handed to :func:`qh.mk_app`, which derives
+  the HTTP routes, request schema and OpenAPI spec from their type hints,
+* CORS is enabled so the browser frontend can call the API.
+
+No persistence and no auth this round: corpora are in-memory and per-process —
+a server restart drops them.
+
+Run it::
+
+    cd backend && uvicorn app.main:app --reload
+
+``ef`` and ``qh`` are local editable installs (the embeddings package group);
+they are never ``pip install``ed.
 """
-Main FastAPI application for app_ef backend.
-"""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Sequence
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from datetime import datetime
 
-from app.core.config import settings
-from app.api.v1 import projects, sources, components, pipelines, results
-from app.api import websockets
-from app.models.api_models import HealthResponse
+from ef.service import EfService
+from qh import mk_app
 
+__all__ = ["build_app", "app"]
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
-    # Startup
-    print(f"Starting {settings.app_name} in {settings.environment} mode...")
-    print(f"Storage backend: {settings.storage_backend}")
-
-    yield
-
-    # Shutdown
-    print(f"Shutting down {settings.app_name}...")
-
-
-# Create FastAPI application
-app = FastAPI(
-    title="app_ef API",
-    description="API for ef (Embedding Flow) framework",
-    version="0.1.0",
-    lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
+#: Frontend dev-server origins allowed by default (Vite: 5173, CRA: 3000).
+DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
+    "http://localhost:5173",
+    "http://localhost:3000",
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+#: Env var holding a comma-separated CORS origin allowlist (overrides the default).
+CORS_ORIGINS_ENVVAR = "APP_EF_CORS_ORIGINS"
+
+#: The :class:`~ef.service.EfService` methods exposed over HTTP, in API order.
+SERVICE_METHODS: tuple[str, ...] = (
+    "create_corpus",
+    "search",
+    "retrieve",
+    "explore_corpus",
+    "corpus_info",
+    "list_corpora",
+    "delete_corpus",
 )
 
 
-# Include routers
-app.include_router(
-    projects.router, prefix=f"{settings.api_v1_prefix}/projects", tags=["projects"]
-)
-app.include_router(
-    sources.router, prefix=settings.api_v1_prefix, tags=["sources"]
-)
-app.include_router(
-    components.router, prefix=f"{settings.api_v1_prefix}/components", tags=["components"]
-)
-app.include_router(
-    pipelines.router, prefix=settings.api_v1_prefix, tags=["pipelines"]
-)
-app.include_router(
-    results.router, prefix=settings.api_v1_prefix, tags=["results"]
-)
-app.include_router(
-    websockets.router, tags=["websockets"]
-)
+def _env_cors_origins() -> tuple[str, ...] | None:
+    """Parse the CORS allowlist from the environment, or ``None`` if unset."""
+    raw = os.environ.get(CORS_ORIGINS_ENVVAR, "").strip()
+    if not raw:
+        return None
+    return tuple(origin.strip() for origin in raw.split(",") if origin.strip())
 
 
-# Root endpoint
-@app.get("/", tags=["root"])
-async def root():
-    """Root endpoint."""
-    return {
-        "message": "Welcome to app_ef API",
-        "version": "0.1.0",
-        "docs": "/docs",
-        "redoc": "/redoc",
-    }
+def build_app(
+    service: EfService | None = None,
+    *,
+    cors_origins: Sequence[str] | None = None,
+) -> FastAPI:
+    """Build the ``app_ef`` FastAPI backend.
 
+    Args:
+        service: the :class:`~ef.service.EfService` to expose. ``None`` → a
+            fresh one (the production default — one corpus registry per
+            process). Injectable so tests can pass a pre-seeded service.
+        cors_origins: the CORS origin allowlist. ``None`` → the
+            ``APP_EF_CORS_ORIGINS`` env var if set, else
+            :data:`DEFAULT_CORS_ORIGINS`.
 
-# Health check endpoint
-@app.get("/health", response_model=HealthResponse, tags=["health"])
-async def health_check():
-    """Health check endpoint."""
-    return HealthResponse(
-        status="healthy", version="0.1.0", timestamp=datetime.utcnow().isoformat()
+    Returns:
+        a :class:`~fastapi.FastAPI` app exposing the seven ``EfService``
+        endpoints, with CORS, a ``/health`` check and the ``qh``-generated
+        ``/docs`` + ``/openapi.json``.
+    """
+    service = service if service is not None else EfService()
+    origins = list(
+        cors_origins
+        if cors_origins is not None
+        else _env_cors_origins() or DEFAULT_CORS_ORIGINS
     )
+
+    base = FastAPI(
+        title="app_ef API",
+        description="HTTP transport over ef.EfService — semantic-search corpora.",
+        version="0.2.0",
+    )
+    base.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @base.get("/health", tags=["ops"])
+    def health() -> dict[str, str]:
+        """Liveness probe — used by the Docker healthcheck."""
+        return {"status": "ok"}
+
+    methods = [getattr(service, name) for name in SERVICE_METHODS]
+    return mk_app(methods, app=base)
+
+
+#: The ASGI app served in production — ``uvicorn app.main:app``.
+app = build_app()

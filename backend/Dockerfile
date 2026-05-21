@@ -2,24 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+# NOTE: this image installs only the third-party deps declared in
+# pyproject.toml (fastapi, uvicorn). The backend also imports `ef` and `qh`,
+# which are local editable packages (the embeddings package group) and are NOT
+# published to PyPI — they must be made available (vendored or published)
+# before the container can actually serve requests. Full container deployment
+# is deferred; see app_ef issue #3.
 
-# Copy requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml .
+COPY app ./app
+RUN pip install --no-cache-dir .
 
-# Copy application code
-COPY ./app ./app
-
-# Create data directory
-RUN mkdir -p /app/data
-
-# Expose port
 EXPOSE 8000
 
-# Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
