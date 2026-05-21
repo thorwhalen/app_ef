@@ -1,0 +1,687 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "app_ef API",
+    "description": "HTTP transport over ef.EfService \u2014 semantic-search corpora.",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Health",
+        "description": "Liveness probe \u2014 used by the Docker healthcheck.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create_corpus": {
+      "post": {
+        "summary": "Index ``sources`` into a new corpus, register it, return its :class:`CorpusInfo`.",
+        "description": "Index ``sources`` into a new corpus, register it, return its :class:`CorpusInfo`.\n\n        Args:\n            sources: the corpus \u2014 a list of text documents.\n            embedder: the embedder, as a string the DI seam resolves\n                (:func:`~ef.embedder_adapters.as_embedder`) \u2014 ``\"hashing\"``,\n                ``\"openai:text-embedding-3-small\"``, ``\"cohere:...\"``, an\n                ``http(s)://`` URL, \u2026. ``None`` \u2192\n                :data:`~ef.source_manager.DEFAULT_EMBEDDER`, the dependency-free\n                :class:`~ef.embedders.HashingEmbedder`.\n            segmenter: the segmenter, as a string\n                (:func:`~ef.segmenter_adapters.as_segmenter`) \u2014 ``None`` \u2192 the\n                recursive-character default.\n            corpus_id: the handle to register the corpus under; ``None`` \u2192 a\n                fresh random id. Reusing a live id is an error.\n\n        Returns:\n            the :class:`CorpusInfo` of the freshly indexed corpus.\n\n        Raises:\n            ValueError: if ``corpus_id`` is already registered.",
+        "operationId": "create_corpus_create_corpus_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorpusInfo"
+                }
+              }
+            }
+          }
+        },
+        "x-python-signature": {
+          "name": "create_corpus",
+          "module": "ef.service",
+          "parameters": [
+            {
+              "name": "sources",
+              "type": "list",
+              "required": true
+            },
+            {
+              "name": "embedder",
+              "type": "UnionType[str, NoneType]",
+              "required": false,
+              "default": null
+            },
+            {
+              "name": "segmenter",
+              "type": "UnionType[str, NoneType]",
+              "required": false,
+              "default": null
+            },
+            {
+              "name": "corpus_id",
+              "type": "UnionType[str, NoneType]",
+              "required": false,
+              "default": null
+            }
+          ],
+          "return_type": "CorpusInfo",
+          "docstring": "Index ``sources`` into a new corpus, register it, return its :class:`CorpusInfo`.\n\nArgs:\n    sources: the corpus \u2014 a list of text documents.\n    embedder: the embedder, as a string the DI seam resolves\n        (:func:`~ef.embedder_adapters.as_embedder`) \u2014 ``\"hashing\"``,\n        ``\"openai:text-embedding-3-small\"``, ``\"cohere:...\"``, an\n        ``http(s)://`` URL, \u2026. ``None`` \u2192\n        :data:`~ef.source_manager.DEFAULT_EMBEDDER`, the dependency-free\n        :class:`~ef.embedders.HashingEmbedder`.\n    segmenter: the segmenter, as a string\n        (:func:`~ef.segmenter_adapters.as_segmenter`) \u2014 ``None`` \u2192 the\n        recursive-character default.\n    corpus_id: the handle to register the corpus under; ``None`` \u2192 a\n        fresh random id. Reusing a live id is an error.\n\nReturns:\n    the :class:`CorpusInfo` of the freshly indexed corpus.\n\nRaises:\n    ValueError: if ``corpus_id`` is already registered."
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "embedder": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "segmenter": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "corpus_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "sources"
+                ]
+              },
+              "examples": {
+                "example_0": {
+                  "summary": "Basic example",
+                  "value": {
+                    "sources": [
+                      "example"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "post": {
+        "summary": "Search a registered corpus \u2014 up to ``limit`` ranked :class:`~ef.source_manager.SearchHit`\\ s.",
+        "description": "Search a registered corpus \u2014 up to ``limit`` ranked :class:`~ef.source_manager.SearchHit`\\ s.\n\n        Each hit carries the matched :class:`~ef.segments.Segment`, its\n        similarity ``score`` (higher = closer) and the ``source_id`` it was cut\n        from.\n\n        Raises:\n            KeyError: if ``corpus_id`` is not registered.",
+        "operationId": "search_search_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchHit"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-python-signature": {
+          "name": "search",
+          "module": "ef.service",
+          "parameters": [
+            {
+              "name": "corpus_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "query",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "required": false,
+              "default": 10
+            }
+          ],
+          "return_type": "list",
+          "docstring": "Search a registered corpus \u2014 up to ``limit`` ranked :class:`~ef.source_manager.SearchHit`\\ s.\n\nEach hit carries the matched :class:`~ef.segments.Segment`, its\nsimilarity ``score`` (higher = closer) and the ``source_id`` it was cut\nfrom.\n\nRaises:\n    KeyError: if ``corpus_id`` is not registered."
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "corpus_id": {
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "corpus_id",
+                  "query"
+                ]
+              },
+              "examples": {
+                "example_0": {
+                  "summary": "Basic example",
+                  "value": {
+                    "corpus_id": "abc123",
+                    "query": "example"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/retrieve": {
+      "post": {
+        "summary": "Retrieve ranked :class:`~ef.segments.Segment`\\ s \u2014 the RAG-plug-in shape.",
+        "description": "Retrieve ranked :class:`~ef.segments.Segment`\\ s \u2014 the RAG-plug-in shape.\n\n        Like :meth:`search`, but returns plain segments in rank order (the\n        ``score`` dropped, the ``source_id`` folded into ``metadata[\"source\"]``)\n        \u2014 clean context to hand to an external RAG/agent framework. ``ef``\n        returns context; it does not synthesize answers.\n\n        Raises:\n            KeyError: if ``corpus_id`` is not registered.",
+        "operationId": "retrieve_retrieve_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Segment"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-python-signature": {
+          "name": "retrieve",
+          "module": "ef.service",
+          "parameters": [
+            {
+              "name": "corpus_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "query",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "required": false,
+              "default": 10
+            }
+          ],
+          "return_type": "list",
+          "docstring": "Retrieve ranked :class:`~ef.segments.Segment`\\ s \u2014 the RAG-plug-in shape.\n\nLike :meth:`search`, but returns plain segments in rank order (the\n``score`` dropped, the ``source_id`` folded into ``metadata[\"source\"]``)\n\u2014 clean context to hand to an external RAG/agent framework. ``ef``\nreturns context; it does not synthesize answers.\n\nRaises:\n    KeyError: if ``corpus_id`` is not registered."
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "corpus_id": {
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "corpus_id",
+                  "query"
+                ]
+              },
+              "examples": {
+                "example_0": {
+                  "summary": "Basic example",
+                  "value": {
+                    "corpus_id": "abc123",
+                    "query": "example"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/explore_corpus": {
+      "post": {
+        "summary": "Project & cluster a registered corpus \u2014 the corpus-map surface.",
+        "description": "Project & cluster a registered corpus \u2014 the corpus-map surface.\n\n        Runs :func:`ef.exploration.explore` over the corpus: every indexed\n        segment is projected to ``dims`` coordinates and assigned a cluster,\n        returned as a row-aligned :class:`~ef.exploration.ExploreResult` (``ids`` /\n        ``coords`` / ``labels`` / ``cluster_titles``) \u2014 the JSON-friendly shape\n        an ``app_ef`` corpus map consumes.\n\n        Args:\n            corpus_id: the corpus to explore.\n            dims: projection target dimensionality \u2014 ``2`` or ``3``.\n            projection_method: ``\"auto\"`` / ``\"umap\"`` / ``\"pca\"``.\n            cluster_method: ``\"kmeans\"`` / ``\"hdbscan\"``.\n            n_clusters: number of k-means clusters.\n            label: when ``True``, also name each cluster with an LLM (needs the\n                ``ef[imbed]`` extra and a key); default ``False``.\n\n        Raises:\n            KeyError: if ``corpus_id`` is not registered.\n            ValueError: if the corpus has fewer than 2 indexed segments.",
+        "operationId": "explore_corpus_explore_corpus_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExploreResult"
+                }
+              }
+            }
+          }
+        },
+        "x-python-signature": {
+          "name": "explore_corpus",
+          "module": "ef.service",
+          "parameters": [
+            {
+              "name": "corpus_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "dims",
+              "type": "int",
+              "required": false,
+              "default": 2
+            },
+            {
+              "name": "projection_method",
+              "type": "str",
+              "required": false,
+              "default": "auto"
+            },
+            {
+              "name": "cluster_method",
+              "type": "str",
+              "required": false,
+              "default": "kmeans"
+            },
+            {
+              "name": "n_clusters",
+              "type": "int",
+              "required": false,
+              "default": 8
+            },
+            {
+              "name": "label",
+              "type": "bool",
+              "required": false,
+              "default": false
+            }
+          ],
+          "return_type": "ExploreResult",
+          "docstring": "Project & cluster a registered corpus \u2014 the corpus-map surface.\n\nRuns :func:`ef.exploration.explore` over the corpus: every indexed\nsegment is projected to ``dims`` coordinates and assigned a cluster,\nreturned as a row-aligned :class:`~ef.exploration.ExploreResult` (``ids`` /\n``coords`` / ``labels`` / ``cluster_titles``) \u2014 the JSON-friendly shape\nan ``app_ef`` corpus map consumes.\n\nArgs:\n    corpus_id: the corpus to explore.\n    dims: projection target dimensionality \u2014 ``2`` or ``3``.\n    projection_method: ``\"auto\"`` / ``\"umap\"`` / ``\"pca\"``.\n    cluster_method: ``\"kmeans\"`` / ``\"hdbscan\"``.\n    n_clusters: number of k-means clusters.\n    label: when ``True``, also name each cluster with an LLM (needs the\n        ``ef[imbed]`` extra and a key); default ``False``.\n\nRaises:\n    KeyError: if ``corpus_id`` is not registered.\n    ValueError: if the corpus has fewer than 2 indexed segments."
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "corpus_id": {
+                    "type": "string"
+                  },
+                  "dims": {
+                    "type": "integer"
+                  },
+                  "projection_method": {
+                    "type": "string"
+                  },
+                  "cluster_method": {
+                    "type": "string"
+                  },
+                  "n_clusters": {
+                    "type": "integer"
+                  },
+                  "label": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "corpus_id"
+                ]
+              },
+              "examples": {
+                "example_0": {
+                  "summary": "Basic example",
+                  "value": {
+                    "corpus_id": "abc123"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/corpus_info": {
+      "post": {
+        "summary": "Return the :class:`CorpusInfo` of a registered corpus.",
+        "description": "Return the :class:`CorpusInfo` of a registered corpus.\n\n        Raises:\n            KeyError: if ``corpus_id`` is not registered.",
+        "operationId": "corpus_info_corpus_info_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorpusInfo"
+                }
+              }
+            }
+          }
+        },
+        "x-python-signature": {
+          "name": "corpus_info",
+          "module": "ef.service",
+          "parameters": [
+            {
+              "name": "corpus_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "return_type": "CorpusInfo",
+          "docstring": "Return the :class:`CorpusInfo` of a registered corpus.\n\nRaises:\n    KeyError: if ``corpus_id`` is not registered."
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "corpus_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "corpus_id"
+                ]
+              },
+              "examples": {
+                "example_0": {
+                  "summary": "Basic example",
+                  "value": {
+                    "corpus_id": "abc123"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list_corpora": {
+      "post": {
+        "summary": "Return the :class:`CorpusInfo` of every registered corpus.",
+        "description": "Return the :class:`CorpusInfo` of every registered corpus.",
+        "operationId": "list_corpora_list_corpora_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CorpusInfo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-python-signature": {
+          "name": "list_corpora",
+          "module": "ef.service",
+          "parameters": [],
+          "return_type": "list",
+          "docstring": "Return the :class:`CorpusInfo` of every registered corpus."
+        }
+      }
+    },
+    "/delete_corpus": {
+      "post": {
+        "summary": "Drop a corpus from the registry, releasing its index.",
+        "description": "Drop a corpus from the registry, releasing its index.\n\n        Raises:\n            KeyError: if ``corpus_id`` is not registered.",
+        "operationId": "delete_corpus_delete_corpus_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        },
+        "x-python-signature": {
+          "name": "delete_corpus",
+          "module": "ef.service",
+          "parameters": [
+            {
+              "name": "corpus_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "return_type": "NoneType",
+          "docstring": "Drop a corpus from the registry, releasing its index.\n\nRaises:\n    KeyError: if ``corpus_id`` is not registered."
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "corpus_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "corpus_id"
+                ]
+              },
+              "examples": {
+                "example_0": {
+                  "summary": "Basic example",
+                  "value": {
+                    "corpus_id": "abc123"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CorpusInfo": {
+        "type": "object",
+        "properties": {
+          "corpus_id": {
+            "type": "string"
+          },
+          "n_sources": {
+            "type": "integer"
+          },
+          "n_segments": {
+            "type": "integer"
+          },
+          "embedder": {
+            "type": "string"
+          },
+          "dim": {
+            "type": "integer"
+          },
+          "config_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "corpus_id",
+          "n_sources",
+          "n_segments",
+          "embedder",
+          "dim",
+          "config_id"
+        ],
+        "description": "A JSON-friendly summary of one registered corpus.\n\nThe return shape shared by :meth:`EfService.create_corpus`,\n:meth:`EfService.corpus_info` and (as a list) :meth:`EfService.list_corpora`\n\u2014 a plain ``dict`` an HTTP client and ``qh``'s schema both understand.\n\nKeys:\n    corpus_id: the registry handle \u2014 how every other method addresses it.\n    n_sources: the number of source documents in the corpus.\n    n_segments: the number of indexed segments (sources cut by the segmenter).\n    embedder: the embedder's ``model_id`` (e.g. ``\"hashing:v1@512\"``).\n    dim: the embedding dimensionality.\n    config_id: the content hash of the segmenter+embedder pipeline."
+      },
+      "Segment": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "end": {
+            "type": "integer"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "tokens": {
+            "type": "integer"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "description": "A piece of text carved from a source document \u2014 the interchange type.\n\nA ``TypedDict``: a :class:`Segment` *is* a plain ``dict``, which keeps it\ncheap to create and stream. ``total=False`` because most keys are optional;\nby convention ``text`` is always present and ``id`` is always set (derived\nfrom ``text`` if not supplied).\n\nKeys:\n    text: The segment's text. **Required.**\n    id: Stable identifier \u2014 content-derived by default (:func:`segment_id`).\n    parent_id: Id of the source document or parent segment this came from.\n    start: Character offset of the segment's start in the source text.\n    end: Character offset of the segment's end (exclusive) in the source.\n    index: Ordinal position of the segment in its segmenter's output.\n    tokens: Token count of ``text`` (meaningful only with ``metadata`` key\n        ``tokenizer`` recording which tokenizer counted it).\n    metadata: Free-form mapping; framework-specific keys live here. See\n        :data:`PROMOTED_METADATA_KEYS` for the conventional keys."
+      },
+      "SearchHit": {
+        "type": "object",
+        "properties": {
+          "segment": {
+            "$ref": "#/components/schemas/Segment"
+          },
+          "score": {
+            "type": "number"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "segment",
+          "score"
+        ],
+        "description": "One ranked search result \u2014 a :class:`~ef.segments.Segment` and its score.\n\n:meth:`SearchableCorpus.search` / :meth:`SourceManager.search` return a\nranked ``list`` of these. Keeping :class:`~ef.segments.Segment` (the\ninterchange ``TypedDict``) pure of a result-only ``score`` key, a\n:class:`SearchHit` *wraps* it alongside the similarity ``score`` and the\n``source_id`` of the document the segment was cut from.\n\nAttributes:\n    segment: the matched segment \u2014 the canonical :class:`~ef.segments.Segment`.\n    score: the similarity score from the vector store (higher = closer).\n    source_id: the corpus key of the source document, if recorded.\n\n>>> hit = SearchHit(segment={'text': 'hi', 'id': 'x'}, score=0.9, source_id='doc-1')\n>>> hit.segment['text'], hit.score, hit.source_id\n('hi', 0.9, 'doc-1')"
+      },
+      "ExploreResult": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coords": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "cluster_titles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ids",
+          "coords",
+          "labels",
+          "cluster_titles"
+        ],
+        "description": "A structured, JSON-friendly corpus-exploration result.\n\nWhat :func:`explore` returns and :meth:`ef.service.EfService.explore_corpus`\nserves. Every list is **row-aligned**: ``ids[i]``, ``coords[i]`` and\n``labels[i]`` all describe the same item.\n\nKeys:\n    ids: the per-item identifiers \u2014 a corpus's keys, or positional ``\"0\"``,\n        ``\"1\"``, \u2026 for an id-less vector matrix.\n    coords: the projected coordinates \u2014 one ``[x, y]`` (or ``[x, y, z]``)\n        row per item.\n    labels: the cluster id of each item (HDBSCAN marks noise ``-1``).\n    cluster_titles: ``{cluster_id: title}`` \u2014 empty unless :func:`explore`\n        was called with ``label=True``."
+      }
+    }
+  }
+}
