@@ -1,0 +1,4 @@
+# pnpm 11 reads build-script approval from here. esbuild fetches its native
+# binary in a postinstall script, so it must be allowed or `vite` cannot run.
+allowBuilds:
+  esbuild: true

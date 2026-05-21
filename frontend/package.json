@@ -1,40 +1,41 @@
 {
   "name": "app-ef-frontend",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
+  "description": "app_ef frontend — a semantic-search corpus UI built on acture (command dispatch) + zodal (schema-driven UI), over the ef.EfService HTTP backend.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "vitest"
+    "typecheck": "tsc"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
-    "@tanstack/react-query": "^5.12.0",
-    "axios": "^1.6.2",
-    "zustand": "^4.4.7",
-    "plotly.js": "^2.27.1",
-    "react-plotly.js": "^2.6.0"
+    "acture": "^1.2.1",
+    "acture-hotkeys": "^1.0.0",
+    "acture-palette-react": "^1.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^2.6.0",
+    "zod": "^4.0.0",
+    "zustand": "^5.0.0",
+    "@zodal/core": "link:../../../i/_zodals/zodal/packages/core",
+    "@zodal/ui": "link:../../../i/_zodals/zodal/packages/ui",
+    "@zodal/store": "link:../../../i/_zodals/zodal/packages/store",
+    "@zodal/ui-shadcn": "link:../../../i/_zodals/zodal-ui-shadcn"
   },
   "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@types/plotly.js": "^2.12.29",
-    "@typescript-eslint/eslint-plugin": "^6.14.0",
-    "@typescript-eslint/parser": "^6.14.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.16",
-    "eslint": "^8.55.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.3.6",
-    "typescript": "^5.2.2",
-    "vite": "^5.0.8",
-    "vitest": "^1.0.4"
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0"
   }
 }
