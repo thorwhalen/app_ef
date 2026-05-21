@@ -12,12 +12,7 @@ services:
       - ./data:/app/data
       - ./backend/app:/app/app  # Hot-reload for development
     environment:
-      - ENVIRONMENT=local
-      - STORAGE_BACKEND=filesystem
-      - LOCAL_STORAGE_PATH=/app/data
-      - LOG_LEVEL=DEBUG
-      - DEBUG=True
-      - ALLOWED_ORIGINS=["http://localhost:3000","http://localhost"]
+      - APP_EF_CORS_ORIGINS=http://localhost:3000,http://localhost
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - app_ef_network
