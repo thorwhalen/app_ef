@@ -30,7 +30,9 @@ export const createCorpusCommand = defineCommand({
     embedder: z
       .string()
       .optional()
-      .describe('Optional embedder id; defaults to the dependency-free hashing embedder.'),
+      .describe(
+        "Optional embedder id (e.g. 'openai:text-embedding-3-small'); the server's default is used when omitted.",
+      ),
   }),
   execute: (params) =>
     runOp(

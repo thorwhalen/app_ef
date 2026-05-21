@@ -42,9 +42,10 @@ export interface paths {
          *                 embedder: the embedder, as a string the DI seam resolves
          *                     (:func:`~ef.embedder_adapters.as_embedder`) — ``"hashing"``,
          *                     ``"openai:text-embedding-3-small"``, ``"cohere:..."``, an
-         *                     ``http(s)://`` URL, …. ``None`` →
+         *                     ``http(s)://`` URL, …. ``None`` → the service's
+         *                     ``default_embedder`` (chosen at construction; itself
          *                     :data:`~ef.source_manager.DEFAULT_EMBEDDER`, the dependency-free
-         *                     :class:`~ef.embedders.HashingEmbedder`.
+         *                     :class:`~ef.embedders.HashingEmbedder`, unless a host overrode it).
          *                 segmenter: the segmenter, as a string
          *                     (:func:`~ef.segmenter_adapters.as_segmenter`) — ``None`` → the
          *                     recursive-character default.
