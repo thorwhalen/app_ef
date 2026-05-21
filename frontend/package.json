@@ -5,8 +5,13 @@
   "type": "module",
   "description": "app_ef frontend — a semantic-search corpus UI built on acture (command dispatch) + zodal (schema-driven UI), over the ef.EfService HTTP backend.",
   "scripts": {
+    "predev": "pnpm run deps:build",
     "dev": "vite",
+    "prebuild": "pnpm run deps:build",
     "build": "tsc && vite build",
+    "deps:build": "pnpm run deps:build:zodal && pnpm run deps:build:shadcn",
+    "deps:build:zodal": "cd ../../../i/_zodals/zodal && pnpm build",
+    "deps:build:shadcn": "cd ../../../i/_zodals/zodal-ui-shadcn && pnpm build",
     "preview": "vite preview",
     "typecheck": "tsc",
     "gen:api": "openapi-typescript src/api/openapi.json -o src/api/openapi.d.ts"
