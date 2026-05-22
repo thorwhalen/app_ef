@@ -1,0 +1,9 @@
+{
+  "//": "Type-checks the e2e sources. Playwright transpiles tests itself; this config is for `pnpm typecheck:e2e` and editor support. Kept separate from the app tsconfig so e2e files are not pulled into the production `tsc && vite build`.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [".", "../playwright.config.ts"]
+}

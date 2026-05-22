@@ -14,6 +14,9 @@
     "deps:build:shadcn": "cd ../../../i/_zodals/zodal-ui-shadcn && pnpm build",
     "preview": "vite preview",
     "typecheck": "tsc",
+    "typecheck:e2e": "tsc -p e2e/tsconfig.json",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "gen:api": "openapi-typescript src/api/openapi.json -o src/api/openapi.d.ts"
   },
   "dependencies": {
@@ -37,10 +40,12 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "acture-e2e-playwright": "^1.1.0",
     "autoprefixer": "^10.4.20",
     "openapi-typescript": "^7.13.0",
     "postcss": "^8.4.49",
