@@ -26,7 +26,7 @@
     "@zodal/ui": "link:../../../i/_zodals/zodal/packages/ui",
     "@zodal/ui-shadcn": "link:../../../i/_zodals/zodal-ui-shadcn",
     "acture": "^1.2.1",
-    "acture-ai-vercel": "^1.0.0",
+    "acture-ai-vercel": "^1.0.1",
     "acture-hotkeys": "^1.0.0",
     "acture-palette-react": "^1.0.0",
     "ai": "^4.3.19",
