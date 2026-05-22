@@ -103,3 +103,15 @@ not part of the immediate work; the immediate work is following `ef`'s refactor.
   built. The current, accurate docs are: this file and
   `misc/docs/app_ef_notes.md` (design direction), plus `README.md` and
   `frontend/README.md` (the app as actually built).
+
+## 8. Testing
+
+The frontend's e2e suite (`frontend/e2e/`) is acture's **e2e dispatch
+surface**: built on `acture-e2e-playwright` + Playwright, it replays
+`{ commandId, params }` sequences through the same command registry the
+palette / hotkeys / assistant use — *an e2e test is a macro with assertions*.
+The page bridge (`frontend/src/e2e/bridge.ts`) exposes the registry on
+`window` in a **DEV build only**; the Python backend is mocked, so the suite
+is hermetic. See `frontend/e2e/README.md`. A suite exercising the real `ef`
+pipeline is deliberately deferred. Backend (Python) testing follows the
+user's global CLAUDE.md.

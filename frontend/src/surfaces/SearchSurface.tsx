@@ -46,7 +46,11 @@ export function SearchSurface() {
           placeholder="Search the corpus…"
           autoFocus
         />
-        <Button type="submit" disabled={busy != null || !query.trim()}>
+        <Button
+          type="submit"
+          data-command="app.search.run"
+          disabled={busy != null || !query.trim()}
+        >
           {busy != null ? <Spinner /> : 'Search'}
         </Button>
       </form>

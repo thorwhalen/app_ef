@@ -54,6 +54,7 @@ If the backend runs on a non-default port, copy `.env.example` to
 | Assistant | `src/assistant/` | the LLM agent loop — projects the registry as AI tools via `acture-ai-vercel` |
 | Schema | `src/schemas/corpus.ts` | the zodal collection for the corpus table |
 | UI | `src/surfaces/`, `src/components/` | React 19 + Tailwind + shadcn-style components |
+| e2e | `e2e/`, `src/e2e/bridge.ts` | Playwright tests driving the command registry — see [`e2e/README.md`](./e2e/README.md) |
 
 Every user operation is dispatched through the acture registry
 (`registry.dispatch(id, params, ctx)`). The surface forms, the ⌘K palette, the
@@ -64,6 +65,21 @@ The **Assistant** runs the LLM call **directly in the browser** (the Vercel AI
 SDK with an OpenAI key the user pastes into the UI and that is kept only in
 `localStorage`). `acture-ai-vercel`'s `toAITools` projects the registry as the
 model's tools; each tool call routes back through `registry.dispatch`.
+
+## Testing
+
+End-to-end tests live in [`e2e/`](./e2e/README.md), built on
+`acture-e2e-playwright` + Playwright. They drive the app through the same
+command registry every other surface uses — **an e2e test is a command macro
+with assertions**. The page bridge (`src/e2e/bridge.ts`) exposes the registry
+on `window` in a DEV build only; the Python backend is mocked, so the suite is
+hermetic and deterministic.
+
+```sh
+pnpm exec playwright install chromium   # one-time: fetch the browser
+pnpm test:e2e                           # run the suite
+pnpm typecheck:e2e                      # type-check the e2e sources
+```
 
 ## zodal is local-linked
 
