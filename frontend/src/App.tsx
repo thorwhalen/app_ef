@@ -11,6 +11,7 @@ import { CorporaSurface } from '@/surfaces/CorporaSurface';
 import { SearchSurface } from '@/surfaces/SearchSurface';
 import { ExploreSurface } from '@/surfaces/ExploreSurface';
 import { RagSurface } from '@/surfaces/RagSurface';
+import { AssistantSurface } from '@/surfaces/AssistantSurface';
 import { CommandPaletteModal } from '@/components/CommandPaletteModal';
 import { CreateCorpusModal } from '@/components/CreateCorpusModal';
 import { NoticeBar } from '@/components/NoticeBar';
@@ -29,6 +30,7 @@ const SURFACES: SurfaceTab[] = [
   { id: 'search', label: 'Search', icon: '🔍', needsCorpus: true },
   { id: 'explore', label: 'Explore', icon: '🗺️', needsCorpus: true },
   { id: 'rag', label: 'RAG plug-in', icon: '📎', needsCorpus: true },
+  { id: 'assistant', label: 'Assistant', icon: '✨', needsCorpus: false },
 ];
 
 function renderSurface(surface: Surface) {
@@ -41,6 +43,8 @@ function renderSurface(surface: Surface) {
       return <ExploreSurface />;
     case 'rag':
       return <RagSurface />;
+    case 'assistant':
+      return <AssistantSurface />;
   }
 }
 

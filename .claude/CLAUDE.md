@@ -43,6 +43,7 @@ contract.
 | **Refresh / freshness** | show the four staleness conditions; trigger explicit refresh |
 | **Explore** (secondary) | the planarize/cluster/label scatter-plot view (old `app_ef`'s core, demoted) |
 | **RAG plug-in** | expose a corpus's `retrieve()` as a tool/endpoint for an external LLM/agent |
+| **Assistant** | an in-app AI chat — acture's AI tool-calling surface projects the command registry as LLM tools; the model operates the app and answers from retrieved context |
 
 ## 4. How `app_ef` should talk to `ef`
 

@@ -17,13 +17,16 @@
     "gen:api": "openapi-typescript src/api/openapi.json -o src/api/openapi.d.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.3.24",
     "@zodal/core": "link:../../../i/_zodals/zodal/packages/core",
     "@zodal/store": "link:../../../i/_zodals/zodal/packages/store",
     "@zodal/ui": "link:../../../i/_zodals/zodal/packages/ui",
     "@zodal/ui-shadcn": "link:../../../i/_zodals/zodal-ui-shadcn",
     "acture": "^1.2.1",
+    "acture-ai-vercel": "^1.0.0",
     "acture-hotkeys": "^1.0.0",
     "acture-palette-react": "^1.0.0",
+    "ai": "^4.3.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

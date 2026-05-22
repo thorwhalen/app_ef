@@ -11,14 +11,41 @@ import { create } from 'zustand';
 import type { Context } from 'acture';
 import type { CorpusInfo, ExploreResult, SearchHit, Segment } from '@/api/schema';
 
-/** The four UI surfaces. */
-export type Surface = 'corpora' | 'search' | 'explore' | 'rag';
+/** The five UI surfaces. */
+export type Surface = 'corpora' | 'search' | 'explore' | 'rag' | 'assistant';
 
 /** A transient user-facing message. */
 export interface Notice {
   kind: 'error' | 'success';
   message: string;
 }
+
+/**
+ * One rendered entry in the assistant transcript. The model's full memory
+ * (including raw tool-call / tool-result messages) lives in the engine; this
+ * is the compact, display-oriented projection of it.
+ */
+export type TranscriptItem =
+  /** A message the user sent. */
+  | { kind: 'user'; text: string }
+  /** Streamed model prose. `text` grows as deltas arrive. */
+  | { kind: 'assistant'; text: string }
+  /** A tool call the model made — a dispatch through the command registry. */
+  | {
+      kind: 'tool';
+      /** The AI SDK tool-call id — matches a call to its result. */
+      callId: string;
+      /** The dispatched command's id (e.g. `app.search.run`). */
+      commandId: string;
+      /** The validated arguments the model supplied. */
+      args: unknown;
+      /** Lifecycle: in flight, succeeded, or failed. */
+      status: 'running' | 'ok' | 'error';
+      /** A short human-readable result summary for the chip. */
+      summary: string;
+    }
+  /** A turn-level failure (model call or stream error). */
+  | { kind: 'error'; text: string };
 
 export interface AppState {
   /** Every registered corpus (mirror of the backend's `list_corpora`). */
@@ -43,6 +70,10 @@ export interface AppState {
   busy: string | null;
   /** Last error / success notice, or `null`. */
   notice: Notice | null;
+  /** The Assistant surface's rendered conversation. */
+  assistantTranscript: TranscriptItem[];
+  /** Whether an assistant turn is currently streaming. */
+  assistantStreaming: boolean;
 }
 
 const initialState: AppState = {
@@ -57,6 +88,8 @@ const initialState: AppState = {
   createModalOpen: false,
   busy: null,
   notice: null,
+  assistantTranscript: [],
+  assistantStreaming: false,
 };
 
 /** The zustand store. State-only — mutate via `useAppStore.setState`. */
