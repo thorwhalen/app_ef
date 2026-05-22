@@ -4,8 +4,8 @@ A semantic-search corpus UI for `ef`, built on the embeddings group's
 TypeScript packages:
 
 - **acture** — the command-dispatch layer. Every user operation is one
-  `defineCommand`; the ⌘K command palette and keyboard shortcuts are
-  projections of that single registry.
+  `defineCommand`; the ⌘K command palette, keyboard shortcuts, and the
+  Assistant's AI tool calling are all projections of that single registry.
 - **zodal** — schema-driven UI. The corpus table's columns and cell
   renderers are inferred from one Zod schema.
 
@@ -19,6 +19,8 @@ It talks to the `app_ef` backend (`qh` over `ef.service.EfService`) — see
 - **Explore** — a 2-D projected & clustered corpus map.
 - **RAG plug-in** — retrieve ranked context segments, plus how to call the
   same endpoint from an external LLM / agent.
+- **Assistant** — an AI chat that operates the app through the command
+  registry and answers questions grounded in retrieved context.
 
 ## Run it
 
@@ -49,13 +51,19 @@ If the backend runs on a non-default port, copy `.env.example` to
 | API client | `src/api/` | typed `fetch` wrapper over the 7 backend endpoints |
 | State | `src/state/store.ts` | one zustand store — the app's render state |
 | Commands | `src/commands/` | acture `defineCommand`s — every operation, once |
+| Assistant | `src/assistant/` | the LLM agent loop — projects the registry as AI tools via `acture-ai-vercel` |
 | Schema | `src/schemas/corpus.ts` | the zodal collection for the corpus table |
 | UI | `src/surfaces/`, `src/components/` | React 19 + Tailwind + shadcn-style components |
 
 Every user operation is dispatched through the acture registry
-(`registry.dispatch(id, params, ctx)`). The surface forms, the ⌘K palette and
-the keyboard shortcuts are all just *dispatch surfaces* over that one
-registry — no scattered `onClick` logic.
+(`registry.dispatch(id, params, ctx)`). The surface forms, the ⌘K palette, the
+keyboard shortcuts, and the Assistant's AI tool calls are all just *dispatch
+surfaces* over that one registry — no scattered `onClick` logic.
+
+The **Assistant** runs the LLM call **directly in the browser** (the Vercel AI
+SDK with an OpenAI key the user pastes into the UI and that is kept only in
+`localStorage`). `acture-ai-vercel`'s `toAITools` projects the registry as the
+model's tools; each tool call routes back through `registry.dispatch`.
 
 ## zodal is local-linked
 
@@ -72,4 +80,4 @@ app's single copy of React and zod.
 
 ## Tech
 
-React 19 · Vite 6 · TypeScript · Tailwind CSS 3 · zustand 5 · pnpm.
+React 19 · Vite 6 · TypeScript · Tailwind CSS 3 · zustand 5 · Vercel AI SDK 4 · pnpm.

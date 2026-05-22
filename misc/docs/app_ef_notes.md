@@ -36,8 +36,10 @@ around exactly that:
    was the *centre* of the old `app_ef`; in the new design it is one tab, fed by
    `ef`'s L5 "explore the corpus" surface.
 6. **RAG plug-in** — surface a corpus's `retrieve()` as something an external
-   LLM/agent can call (an endpoint, an MCP tool). `app_ef` does NOT synthesize
-   answers; that is the consuming application's job.
+   LLM/agent can call (an endpoint, an MCP tool).
+7. **Assistant** — an in-app AI chat that operates `app_ef` through the command
+   registry (acture's AI tool-calling surface) and answers questions grounded
+   in retrieved context. See §6 on answer synthesis.
 
 ## 3. Backend wiring — `qh` + `ju`
 
@@ -110,8 +112,11 @@ FP32 rescore**: Hamming search over the 1-bit index → oversampled candidate po
 ## 6. What `app_ef` must NOT do
 
 - No embedding / segmentation / search / indexing logic — all of that is `ef`'s.
-- No answer synthesis — `app_ef` shows retrieved results; an LLM/agent
-  (elsewhere) synthesizes.
+- Answer synthesis is allowed **only** in the Assistant surface, and only
+  grounded in what `ef`'s `retrieve` / `search` tools returned. Every other
+  surface shows retrieved results without synthesizing. *(This deliberately
+  relaxes the original "no answer synthesis" rule — 2026-05-22 decision: the
+  Assistant is an in-app RAG agent, not just a results viewer.)*
 - No hand-rolled API route logic that duplicates `ef` — route layer is
   `qh`-generated.
 - No scattered per-component operation handlers — operations are `acture`
