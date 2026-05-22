@@ -1,146 +1,104 @@
 # app_ef
 
-A modern web application that provides an intuitive interface for the **ef** (Embedding Flow) framework.
+A web app for **semantic search over text corpora** — a UI over the
+[`ef`](https://github.com/thorwhalen/ef) embedding-search facade.
 
-## Overview
+Create a corpus, index it, and search it by meaning. `app_ef` is
+**presentation only**: every embedding, indexing and search operation lives in
+`ef`. `app_ef` is a thin FastAPI transport plus a React UI over it.
 
-**app_ef** makes the powerful ef embedding pipeline framework accessible through a user-friendly web interface. Built with FastAPI and React, it enables users to create, manage, and visualize embedding workflows without writing code.
+## What it does
 
-## What is ef?
-
-[ef](https://github.com/thorwhalen/ef) is a lightweight framework for building and executing embedding pipelines with:
-- Zero-configuration setup with built-in components
-- Flexible component registries (embedders, planarizers, clusterers, segmenters)
-- Automatic pipeline composition using DAGs
-- Progressive enhancement from simple to production-grade ML
-
-## Features
-
-### Core Capabilities
-- **Project Management**: Create and organize embedding projects
-- **Document Processing**: Upload and manage source documents
-- **Pipeline Builder**: Visual interface for composing embedding workflows
-- **Real-time Execution**: Run pipelines with live progress updates
-- **Interactive Visualizations**: Explore embeddings and clusters in 2D/3D
-- **Export Results**: Download embeddings, clusters, and visualizations
-
-### Technical Highlights
-- **Modern Stack**: FastAPI backend + React TypeScript frontend
-- **Local & Cloud**: Works locally, scales to cloud deployment
-- **Real-time Updates**: WebSocket support for live pipeline status
-- **Extensible**: Plugin architecture for custom components
-- **Well-tested**: Comprehensive test coverage
-
-## Documentation
-
-- **[QUICKSTART.md](QUICKSTART.md)** - Get started in minutes
-- **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** - High-level architecture and roadmap
-- **[TECHNICAL_ARCHITECTURE.md](TECHNICAL_ARCHITECTURE.md)** - Detailed technical specifications
-- **[DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md)** - Week-by-week development guide
-
-## Quick Start
-
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- Docker & Docker Compose (optional)
-
-### With Docker (Recommended)
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd app_ef
-
-# Start services
-docker-compose up
-```
-
-- Backend API: http://localhost:8000
-- Frontend UI: http://localhost:3000
-- API Docs: http://localhost:8000/docs
-
-### Manual Setup
-
-See **[QUICKSTART.md](QUICKSTART.md)** for detailed setup instructions.
+- **Corpora** — create, list, select and delete corpora.
+- **Search** — the headline surface: semantic search over the selected corpus,
+  with ranked, scored results.
+- **Explore** — a 2-D projected & clustered map of the corpus.
+- **RAG plug-in** — retrieve ranked context segments, plus the recipe for
+  calling the same endpoint from an external LLM / agent. `app_ef` does not
+  synthesize answers — that is the consuming application's job.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    React Frontend                        │
-│  Project Management | Pipeline Builder | Visualizations  │
-└─────────────────────┬───────────────────────────────────┘
-                      │ REST API / WebSocket
-┌─────────────────────▼───────────────────────────────────┐
-│                   FastAPI Backend                        │
-│  API Endpoints | Background Tasks | Real-time Updates   │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────────┐
-│                      ef Core                             │
-│  Embedding Pipelines | Component Registries | Storage   │
-└─────────────────────────────────────────────────────────┘
+React + TypeScript frontend  (frontend/)
+        │  typed fetch; TS types generated from the OpenAPI spec
+        ▼
+FastAPI backend  (backend/)  — thin HTTP transport
+        │  qh.mk_app() derives routes + schema from type hints
+        ▼
+ef.service.EfService  — all embedding / indexing / search logic
 ```
 
-## Development Status
+The backend is the *whole* of `backend/app/main.py`: one `EfService` per
+process, its seven JSON-friendly methods handed to `qh.mk_app()`, which derives
+the HTTP routes and OpenAPI schema from their type hints. No database and no
+auth — corpora are in-memory and per-process, so a server restart drops them.
 
-🚧 **This project is currently in the planning phase.**
+`ef` and `qh` are local editable installs (the *embeddings* package group);
+they are never `pip install`ed.
 
-The comprehensive implementation plan is complete. Development follows a phased approach:
+## Run it
 
-- ✅ **Phase 0**: Planning and architecture (Current)
-- 📋 **Phase 1**: Foundation (Weeks 1-2)
-- 📋 **Phase 2**: Core features (Weeks 3-4)
-- 📋 **Phase 3**: Visualization (Weeks 5-6)
-- 📋 **Phase 4**: Real-time features (Weeks 7-8)
-- 📋 **Phase 5**: Cloud readiness (Weeks 9-10)
-- 📋 **Phase 6**: Testing & docs (Week 11)
-- 📋 **Phase 7**: Beta release (Week 12)
+Two processes — backend, then frontend.
 
-See **[DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md)** for the complete timeline.
+**Backend** (Python 3.10+, with `ef`, `qh`, `fastapi` and `uvicorn`
+available):
 
-## Contributing
+```bash
+cd backend
+uvicorn app.main:app --reload      # http://localhost:8000  (/docs for the API)
+```
 
-Contributions are welcome! This project follows best practices:
+For real semantic search, set `OPENAI_API_KEY` before starting — new corpora
+then default to `openai:text-embedding-3-small`. Without a key the backend
+still runs, but falls back to the dependency-free `hashing` embedder (which
+matches word overlap, not meaning) and warns loudly. Set `APP_EF_EMBEDDER` to
+choose any other embedder `ef` resolves.
 
-- Test-driven development (TDD)
-- Code reviews required
-- Type hints and TypeScript strict mode
-- Comprehensive documentation
-- Semantic versioning
+**Frontend** (Node 18+ and pnpm):
 
-## Technology Stack
+```bash
+cd frontend
+pnpm install
+pnpm dev                           # http://localhost:5173
+```
 
-**Backend:**
-- FastAPI - Modern async Python web framework
-- Pydantic - Data validation
-- ef - Embedding pipeline framework
-- SQLite/PostgreSQL - Database
-- Redis - Task queue
-- Pytest - Testing
+See [`frontend/README.md`](frontend/README.md) for the frontend architecture
+(`acture` command dispatch, `zodal` schema-driven UI, the local-linked `zodal`
+packages).
 
-**Frontend:**
-- React 18 - UI framework
-- TypeScript - Type safety
-- Vite - Build tool
-- TanStack Query - Data fetching
-- Plotly.js - Visualizations
-- Tailwind CSS - Styling
+## Configuration
 
-**DevOps:**
-- Docker & Docker Compose
-- GitHub Actions - CI/CD
-- Kubernetes - Cloud deployment (future)
+Backend environment variables:
 
-## License
+| Variable | Purpose | Default |
+|---|---|---|
+| `OPENAI_API_KEY` | enables `openai:text-embedding-3-small` as the default embedder for new corpora | — |
+| `APP_EF_EMBEDDER` | explicit embedder override — any string `ef`'s DI seam resolves | auto-resolved |
+| `APP_EF_CORS_ORIGINS` | comma-separated CORS origin allowlist | `localhost:5173`, `localhost:3000` |
 
-[License TBD]
+## API contract
 
-## Acknowledgments
+The frontend's API types are **generated**, not hand-written: `qh` derives a
+complete OpenAPI document from `EfService`'s Python type hints, so that
+document is the single source of truth. After any backend API change, refresh
+the contract:
 
-Built on top of the excellent [ef](https://github.com/thorwhalen/ef) framework by Thor Whalen.
+```bash
+cd backend && python export_openapi.py     # writes frontend/src/api/openapi.json
+cd frontend && pnpm gen:api                # regenerates the TypeScript types
+```
 
----
+## Tests
 
-**Ready to get started?** See **[QUICKSTART.md](QUICKSTART.md)**
+```bash
+cd backend && PYTHONPATH=. pytest          # offline — tests pin the hashing embedder
+```
+
+## Status
+
+`app_ef` has no users yet and is free to be reshaped — treat the current code
+as a starting point, not a fixed contract. Container deployment is not set up;
+the dev workflow is the two processes above. For design direction see
+[`.claude/CLAUDE.md`](.claude/CLAUDE.md) and
+[`misc/docs/app_ef_notes.md`](misc/docs/app_ef_notes.md).

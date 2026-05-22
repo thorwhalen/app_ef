@@ -97,6 +97,8 @@ not part of the immediate work; the immediate work is following `ef`'s refactor.
 - Backend Python: follow the user's global CLAUDE.md.
 - Frontend: declarative / schema-based (the user prefers Zod / zustand / immer /
   shadcn); the user is a frontend novice — explain JS/TS decisions clearly.
-- Keep the existing docs (`IMPLEMENTATION_PLAN.md`, `TECHNICAL_ARCHITECTURE.md`,
-  etc.) but treat them as describing the *old* design; the search/RAG refactor
-  supersedes them.
+- The root-level planning docs that described the *old* visualization-pipeline
+  design were removed (2026-05-22) — they documented an app that was never
+  built. The current, accurate docs are: this file and
+  `misc/docs/app_ef_notes.md` (design direction), plus `README.md` and
+  `frontend/README.md` (the app as actually built).
