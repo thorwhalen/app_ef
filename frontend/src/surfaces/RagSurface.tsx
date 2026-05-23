@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/card';
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+  import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
 
 export function RagSurface() {
   const corpusId = useAppStore((s) => s.selectedCorpusId);

@@ -1,0 +1,40 @@
+# app_ef — enlace app config for apps.thorwhalen.com.
+# Registered via app_dirs in tw_platform/platform.toml; deployed by
+# tw_platform's deploy.py. Frontend → /app_ef/ , backend → /api/app_ef.
+
+display_name = "app_ef"
+description = "Semantic-search corpus UI over ef.EfService."
+
+# Access: shared-password gate (enlace auth).
+# app_ef is a PUBLIC repo, so we deliberately avoid committing per-user
+# email allow-lists here. Instead a single shared password protects the
+# app — the argon2id HASH of that password is read from the server env
+# var named below; the plaintext is shared out-of-band with allowed users.
+# Set the hash on the deploy server BEFORE the first real deploy (e.g. in
+# the systemd unit's Environment= or wherever tw_platform sources app
+# secrets), or the login form will fail closed.
+access = "protected:shared"
+shared_password_env = "APP_EF_SHARED_PASSWORD"
+
+# The built frontend. The Vite project lives in frontend/; `pnpm build` emits
+# frontend/dist, which enlace serves at /app_ef/.
+frontend_dir = "frontend/dist"
+
+# tw_platform's deploy.py runs this build on the deploy runner, injecting
+# VITE_PUBLIC_BASE=/app_ef/ and VITE_API_BASE=/api/app_ef. `cwd` points the
+# build at the Vite project (frontend/), not the repo root.
+[build]
+cwd = "frontend"
+env_vars = ["VITE_PUBLIC_BASE", "VITE_API_BASE"]
+install = "pnpm install --frozen-lockfile"
+build = "pnpm build"
+
+# PyPI packages the server venv needs. ef + qh provide all backend logic;
+# ef[openai] also pulls the `openai` SDK — bring-your-own-key needs the SDK
+# present even though the server holds no key. The backend code itself is
+# rsynced (not pip-installed) and imported via server.py.
+[python]
+packages = [
+    "ef[openai]>=0.1.17",
+    "qh>=0.0.14",
+]
