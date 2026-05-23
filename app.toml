@@ -5,15 +5,16 @@
 display_name = "app_ef"
 description = "Semantic-search corpus UI over ef.EfService."
 
-# Access: logged-in, allow-listed users only (enlace auth).
-access = "protected:user"
-
-# IMPORTANT — set before the first real deploy. List the Google-account
-# email(s) allowed to sign in. app_ef is a PUBLIC repo, so every email here is
-# published; if you would rather not commit personal emails, switch `access`
-# to "protected:shared" (a shared password supplied via a server secret).
-# An empty list fails closed — the app deploys but no one can sign in.
-allowed_users = []
+# Access: shared-password gate (enlace auth).
+# app_ef is a PUBLIC repo, so we deliberately avoid committing per-user
+# email allow-lists here. Instead a single shared password protects the
+# app — the argon2id HASH of that password is read from the server env
+# var named below; the plaintext is shared out-of-band with allowed users.
+# Set the hash on the deploy server BEFORE the first real deploy (e.g. in
+# the systemd unit's Environment= or wherever tw_platform sources app
+# secrets), or the login form will fail closed.
+access = "protected:shared"
+shared_password_env = "APP_EF_SHARED_PASSWORD"
 
 # The built frontend. The Vite project lives in frontend/; `pnpm build` emits
 # frontend/dist, which enlace serves at /app_ef/.
