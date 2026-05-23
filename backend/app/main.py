@@ -19,6 +19,16 @@ when ``OPENAI_API_KEY`` is set (real semantic search out of the box), else the
 dependency-free ``hashing`` embedder (lexical word overlap). Set
 ``APP_EF_EMBEDDER`` to override.
 
+**Bring-your-own-key.** ``create_corpus`` also accepts the caller's *own* OpenAI
+key, supplied in the ``X-OpenAI-Key`` request header — mapped onto
+:meth:`ef.service.EfService.create_corpus`'s ``embedder_api_key`` parameter. The
+key builds that corpus's embedder and is never stored; being header-mapped it
+stays out of the JSON body *and* the OpenAPI schema. With no header and no
+server-side ``OPENAI_API_KEY``, new corpora fall back to the ``hashing``
+embedder — the service runs keyless and degrades to lexical search rather than
+failing. This is how ``app_ef`` is deployed: no server key, every caller brings
+their own.
+
 Run it::
 
     cd backend && uvicorn app.main:app --reload
@@ -37,7 +47,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ef.service import EfService
-from qh import mk_app
+from qh import HttpLocation, TransformSpec, mk_app
 
 __all__ = ["build_app", "app"]
 
@@ -60,6 +70,12 @@ OPENAI_KEY_ENVVAR = "OPENAI_API_KEY"
 
 #: The embedder used for real semantic search when an OpenAI key is available.
 MODEL_EMBEDDER = "openai:text-embedding-3-small"
+
+#: HTTP request header carrying the caller's own OpenAI key — the
+#: bring-your-own-key seam. Mapped onto ``create_corpus``'s ``embedder_api_key``
+#: parameter; being header-located it never enters the JSON body or the
+#: OpenAPI schema.
+OPENAI_KEY_HEADER = "X-OpenAI-Key"
 
 #: The dependency-free lexical embedder — the fallback when no model is available.
 FALLBACK_EMBEDDER = "hashing"
@@ -177,7 +193,19 @@ def build_app(
         """Liveness probe — used by the Docker healthcheck."""
         return {"status": "ok"}
 
-    methods = [getattr(service, name) for name in SERVICE_METHODS]
+    # Every service method is exposed with default routing, except
+    # create_corpus: its `embedder_api_key` parameter is mapped to the
+    # X-OpenAI-Key request header — the bring-your-own-key seam. A header
+    # mapping keeps the key out of the JSON body and the OpenAPI schema.
+    methods = {getattr(service, name): {} for name in SERVICE_METHODS}
+    methods[service.create_corpus] = {
+        "param_overrides": {
+            "embedder_api_key": TransformSpec(
+                http_location=HttpLocation.HEADER,
+                http_name=OPENAI_KEY_HEADER,
+            ),
+        },
+    }
     return mk_app(methods, app=base)
 
 

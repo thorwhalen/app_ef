@@ -16,9 +16,25 @@ import type {
   SearchHit,
   Segment,
 } from './schema';
+import { OPENAI_KEY_HEADER, OPENAI_KEY_STORAGE } from './openaiKey';
 
-/** Base URL of the backend. Override with `VITE_API_BASE_URL` (see `.env`). */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+/**
+ * Base URL of the backend. In production tw_platform's deploy injects
+ * `VITE_API_BASE` (the enlace mount, `/api/app_ef`); local dev defaults to the
+ * dev backend. The endpoint paths below are appended to it.
+ */
+const API_BASE_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+
+/**
+ * The user's OpenAI key as a request header, or `{}` when none is stored.
+ * Sent only on `createCorpus` — the bring-your-own-key embedder seam (see
+ * `openaiKey.ts`). The query endpoints reuse the corpus's bound embedder, so
+ * they need no key.
+ */
+function openAIKeyHeader(): Record<string, string> {
+  const key = localStorage.getItem(OPENAI_KEY_STORAGE);
+  return key ? { [OPENAI_KEY_HEADER]: key } : {};
+}
 
 /**
  * An error raised when the backend returns a non-2xx response. `status` is
@@ -51,12 +67,16 @@ async function errorMessage(res: Response): Promise<string> {
 }
 
 /** POST a JSON body to `path` and decode the JSON response as `T`. */
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function post<T>(
+  path: string,
+  body: unknown,
+  extraHeaders: Record<string, string> = {},
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...extraHeaders },
       body: JSON.stringify(body),
     });
   } catch {
@@ -77,9 +97,13 @@ async function post<T>(path: string, body: unknown): Promise<T> {
  * (`search`, `retrieve`, `exploreCorpus`).
  */
 export const api = {
-  /** Index documents into a new corpus. */
+  /**
+   * Index documents into a new corpus. Sends the user's OpenAI key as the
+   * `X-OpenAI-Key` header when one is stored, so the backend can build an
+   * OpenAI embedder for the corpus (bring-your-own-key).
+   */
   createCorpus: (body: CreateCorpusBody) =>
-    post<CorpusInfo>('/create_corpus', body),
+    post<CorpusInfo>('/create_corpus', body, openAIKeyHeader()),
 
   /** List every registered corpus. */
   listCorpora: () => post<CorpusInfo[]>('/list_corpora', {}),

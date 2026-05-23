@@ -64,8 +64,7 @@ pnpm dev                           # http://localhost:5173
 ```
 
 See [`frontend/README.md`](frontend/README.md) for the frontend architecture
-(`acture` command dispatch, `zodal` schema-driven UI, the local-linked `zodal`
-packages).
+(`acture` command dispatch, `zodal` schema-driven UI).
 
 ## Configuration
 
@@ -76,6 +75,14 @@ Backend environment variables:
 | `OPENAI_API_KEY` | enables `openai:text-embedding-3-small` as the default embedder for new corpora | — |
 | `APP_EF_EMBEDDER` | explicit embedder override — any string `ef`'s DI seam resolves | auto-resolved |
 | `APP_EF_CORS_ORIGINS` | comma-separated CORS origin allowlist | `localhost:5173`, `localhost:3000` |
+
+**Bring-your-own-key.** None of these is required. `create_corpus` accepts the
+caller's own OpenAI key via the `X-OpenAI-Key` request header (sent by the
+frontend from the key the user pastes into the Assistant panel). With no
+header and no server-side `OPENAI_API_KEY`, new corpora fall back to the
+keyless `hashing` embedder — so the backend runs with zero secrets and
+degrades to lexical search rather than failing. This is how the deployed
+instance runs: no server key, every caller brings their own.
 
 ## API contract
 
@@ -95,10 +102,20 @@ cd frontend && pnpm gen:api                # regenerates the TypeScript types
 cd backend && PYTHONPATH=. pytest          # offline — tests pin the hashing embedder
 ```
 
+## CI & deployment
+
+`.github/workflows/ci.yml` validates every change — a frontend job (typecheck,
+Playwright e2e, production build) and a backend job (pytest). On a push to
+`main` it also triggers a production deploy: app_ef is a registered
+[tw_platform](https://github.com/thorwhalen/tw_platform) / enlace app, served
+behind auth at `apps.thorwhalen.com/app_ef/` (API at `/api/app_ef/`). The
+entry point is the root `server.py`; `app.toml` declares the build and the
+server's Python packages. `deploy.py` in tw_platform is the single source of
+deploy truth — app_ef's CI only triggers it.
+
 ## Status
 
 `app_ef` has no users yet and is free to be reshaped — treat the current code
-as a starting point, not a fixed contract. Container deployment is not set up;
-the dev workflow is the two processes above. For design direction see
+as a starting point, not a fixed contract. For design direction see
 [`.claude/CLAUDE.md`](.claude/CLAUDE.md) and
 [`misc/docs/app_ef_notes.md`](misc/docs/app_ef_notes.md).

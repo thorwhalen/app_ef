@@ -23,9 +23,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { toAITools } from 'acture-ai-vercel';
 import { registry } from '@/commands/registry';
 import { appContext, useAppStore, type TranscriptItem } from '@/state/store';
-
-/** `localStorage` key holding the user's OpenAI API key (browser-direct). */
-const KEY_STORAGE = 'app_ef.openai_api_key';
+import { OPENAI_KEY_STORAGE } from '@/api/openaiKey';
 
 /** The chat model. Override with `VITE_APP_EF_CHAT_MODEL`. */
 const MODEL: string =
@@ -62,7 +60,7 @@ error, explain it plainly and suggest a fix; do not retry blindly.
 
 // ── API key (browser-direct; key lives only in this browser) ────────────────
 
-let apiKey: string | null = localStorage.getItem(KEY_STORAGE);
+let apiKey: string | null = localStorage.getItem(OPENAI_KEY_STORAGE);
 
 /** Whether an API key is available for the model call. */
 export function hasApiKey(): boolean {
@@ -72,13 +70,13 @@ export function hasApiKey(): boolean {
 /** Persist the user's OpenAI key to this browser's `localStorage`. */
 export function saveApiKey(key: string): void {
   apiKey = key.trim();
-  localStorage.setItem(KEY_STORAGE, apiKey);
+  localStorage.setItem(OPENAI_KEY_STORAGE, apiKey);
 }
 
 /** Forget the stored key (removes it from `localStorage`). */
 export function forgetApiKey(): void {
   apiKey = null;
-  localStorage.removeItem(KEY_STORAGE);
+  localStorage.removeItem(OPENAI_KEY_STORAGE);
 }
 
 // ── Conversation (the model's memory — not rendered) ─────────────────────────

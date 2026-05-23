@@ -7,12 +7,18 @@ name = "app-ef-backend"
 version = "0.2.0"
 description = "Thin HTTP transport exposing ef.EfService over qh.mk_app() — the app_ef backend."
 requires-python = ">=3.10"
-# `ef` and `qh` are local editable installs (the embeddings package group, via
-# the .pth manifest) — they provide all embedding/search logic and are never
-# pip-installed. Only third-party deps are declared here.
+# In local dev `ef` and `qh` resolve to editable installs (the embeddings
+# package group, via the .pth manifest) that shadow these pins. The pins exist
+# so CI and the production server — which have no .pth manifest — install them
+# from PyPI. `ef[openai]`: the deployed backend is bring-your-own-key, so it
+# builds OpenAI embedders from a user-supplied key and needs the `openai` SDK
+# even though it holds no key of its own. `ef>=0.1.17` carries `create_corpus`'s
+# `embedder_api_key`; `qh>=0.0.14` carries the header `param_overrides`.
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
+    "ef[openai]>=0.1.17",
+    "qh>=0.0.14",
 ]
 
 [project.optional-dependencies]
