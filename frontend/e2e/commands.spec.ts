@@ -47,8 +47,8 @@ test('query commands are gated when no corpus is selected', async ({
   commands,
 }) => {
   // `dispatch` enforces `when` clauses. With no corpus selected the
-  // injected context is empty, so the query commands' `when` fails —
-  // errors-as-data, never a thrown exception.
+  // injected context carries no `corpusId`, so the query commands' `when`
+  // fails — errors-as-data, never a thrown exception.
   for (const id of QUERY_COMMAND_IDS) {
     const result = await commands.dispatch(id, { query: 'anything' });
     expect(result, `${id} should be gated`).toMatchObject({
