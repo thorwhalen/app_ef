@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { defineCommand, err } from 'acture';
 import { api } from '@/api/client';
-import { useAppStore } from '@/state/store';
+import { navTo, useAppStore } from '@/state/store';
 import { runOp } from './op';
 
 /** True when a corpus is selected — the availability gate for query commands. */
@@ -48,7 +48,7 @@ export const searchCommand = defineCommand({
       (searchResults) => ({
         searchResults,
         lastQuery: params.query,
-        activeSurface: 'search',
+        ...navTo('search', ctx),
       }),
     );
   },
@@ -75,7 +75,7 @@ export const exploreCommand = defineCommand({
     return runOp(
       'Building corpus map…',
       () => api.exploreCorpus({ corpus_id: corpusId, dims: 2, n_clusters: nClusters }),
-      (exploreResult) => ({ exploreResult, activeSurface: 'explore' }),
+      (exploreResult) => ({ exploreResult, ...navTo('explore', ctx) }),
     );
   },
 });
@@ -114,7 +114,7 @@ export const retrieveCommand = defineCommand({
       (retrieveResults) => ({
         retrieveResults,
         lastQuery: params.query,
-        activeSurface: 'rag',
+        ...navTo('rag', ctx),
       }),
     );
   },

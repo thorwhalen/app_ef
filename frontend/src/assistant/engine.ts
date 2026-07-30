@@ -22,7 +22,11 @@ import type { CoreMessage, Tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { toAITools } from 'acture-ai-vercel';
 import { registry } from '@/commands/registry';
-import { appContext, useAppStore, type TranscriptItem } from '@/state/store';
+import {
+  assistantContext,
+  useAppStore,
+  type TranscriptItem,
+} from '@/state/store';
 import { OPENAI_KEY_STORAGE } from '@/api/openaiKey';
 
 /** The chat model. Override with `VITE_APP_EF_CHAT_MODEL`. */
@@ -112,7 +116,9 @@ function buildTools(): {
 } {
   const raw = toAITools(registry, {
     excludeFunctionWhen: false,
-    context: appContext(),
+    // `assistantContext` marks the dispatch `origin: 'assistant'`, so a
+    // command's `navTo` does not flip `activeSurface` away from the chat.
+    context: assistantContext(),
   });
   const tools: Record<string, Tool> = {};
   const idByWireName = new Map<string, string>();

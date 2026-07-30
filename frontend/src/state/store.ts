@@ -14,6 +14,14 @@ import type { CorpusInfo, ExploreResult, SearchHit, Segment } from '@/api/schema
 /** The five UI surfaces. */
 export type Surface = 'corpora' | 'search' | 'explore' | 'rag' | 'assistant';
 
+/**
+ * Where a command dispatch originated. Every surface that drives the
+ * registry is `'user'` — the palette, hotkeys, surface forms, the e2e
+ * bridge — except the AI assistant, which marks its tool-call dispatches
+ * `'assistant'`. The navigation policy reads this; see `navTo`.
+ */
+export type DispatchOrigin = 'user' | 'assistant';
+
 /** A transient user-facing message. */
 export interface Notice {
   kind: 'error' | 'success';
@@ -102,11 +110,37 @@ export function selectedCorpus(state: AppState): CorpusInfo | undefined {
 
 /**
  * Build the dispatch / when-clause context from current state. Every
- * dispatch site (palette, hotkeys, surface forms) passes this so that
- * corpus-dependent commands resolve their availability and their target
- * consistently.
+ * user-driven dispatch site (palette, hotkeys, surface forms, the e2e
+ * bridge) passes this so that corpus-dependent commands resolve their
+ * availability and their target consistently. The `origin` is `'user'` —
+ * the assistant builds its own context with `assistantContext`.
  */
 export function appContext(): Context {
   const { selectedCorpusId } = useAppStore.getState();
-  return selectedCorpusId ? { corpusId: selectedCorpusId } : {};
+  return {
+    ...(selectedCorpusId ? { corpusId: selectedCorpusId } : {}),
+    origin: 'user',
+  };
+}
+
+/**
+ * The dispatch context for assistant-driven (AI tool-call) dispatches.
+ * Identical to `appContext` but marked `origin: 'assistant'`, so `navTo`
+ * keeps the user on the Assistant surface while the assistant operates the
+ * app — navigating away would unmount the streaming chat mid-turn.
+ */
+export function assistantContext(): Context {
+  return { ...appContext(), origin: 'assistant' };
+}
+
+/**
+ * The `activeSurface` patch for a command whose result is shown on
+ * `surface`. A user-driven dispatch navigates there; an assistant-driven
+ * dispatch does not — it yields an empty patch, leaving the user on the
+ * Assistant surface. Command handlers spread this into their success state
+ * instead of setting `activeSurface` directly, so the "should we navigate"
+ * policy lives here, in one place, rather than in every handler.
+ */
+export function navTo(surface: Surface, ctx: Context): Partial<AppState> {
+  return ctx.origin === 'assistant' ? {} : { activeSurface: surface };
 }

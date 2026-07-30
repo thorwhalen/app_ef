@@ -98,6 +98,11 @@ not part of the immediate work; the immediate work is following `ef`'s refactor.
 - Backend Python: follow the user's global CLAUDE.md.
 - Frontend: declarative / schema-based (the user prefers Zod / zustand / immer /
   shadcn); the user is a frontend novice — explain JS/TS decisions clearly.
+- Command handlers must **not** set `activeSurface` directly — they spread
+  `navTo(surface, ctx)` (`state/store.ts`) into their success state. `navTo`
+  respects the dispatch `origin`: user-driven dispatches (palette, hotkeys,
+  surface forms) navigate; assistant-driven dispatches do not, so the AI
+  operating the app never unmounts the live chat mid-turn.
 - The root-level planning docs that described the *old* visualization-pipeline
   design were removed (2026-05-22) — they documented an app that was never
   built. The current, accurate docs are: this file and

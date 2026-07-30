@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { defineCommand, ok } from 'acture';
 import { api } from '@/api/client';
-import { useAppStore } from '@/state/store';
+import { navTo, useAppStore } from '@/state/store';
 import { runOp } from './op';
 
 /** Index a set of documents into a new corpus. */
@@ -34,7 +34,7 @@ export const createCorpusCommand = defineCommand({
         "Optional embedder id (e.g. 'openai:text-embedding-3-small'); the server's default is used when omitted.",
       ),
   }),
-  execute: (params) =>
+  execute: (params, ctx) =>
     runOp(
       'Creating corpus…',
       async () => {
@@ -49,7 +49,7 @@ export const createCorpusCommand = defineCommand({
       ({ created, corpora }) => ({
         corpora,
         selectedCorpusId: created.corpus_id,
-        activeSurface: 'corpora',
+        ...navTo('corpora', ctx),
         notice: {
           kind: 'success',
           message: `Corpus "${created.corpus_id}" indexed — ${created.n_segments} segments.`,
