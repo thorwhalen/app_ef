@@ -42,7 +42,8 @@ It talks to the `app_ef` backend (`qh` over `ef.service.EfService`) — see
 3. Open <http://localhost:5173>.
 
 If the backend runs on a non-default port, copy `.env.example` to
-`.env.local` and set `VITE_API_BASE_URL`.
+`.env.local` and set `VITE_API_BASE`. (In production tw_platform's deploy
+injects `VITE_API_BASE=/api/app_ef` — the enlace mount — automatically.)
 
 ## Architecture
 
@@ -81,18 +82,17 @@ pnpm test:e2e                           # run the suite
 pnpm typecheck:e2e                      # type-check the e2e sources
 ```
 
-## zodal is local-linked
+## zodal and acture come from npm
 
-acture is installed from npm. **zodal is consumed from local source** via
-`link:` dependencies in `package.json` (`@zodal/core`, `@zodal/ui`,
-`@zodal/store`, `@zodal/ui-shadcn`) — zodal is at `0.1.x` and co-evolves with
-this app, so its fixes are picked up without a publish cycle. The `link:`
-paths are relative to the standard ecosystem layout (`i/_zodals/…` under the
-projects folder). To use published zodal instead, swap the `link:` specifiers
-for version ranges.
+Both `acture` and `zodal` (`@zodal/core`, `@zodal/store`, `@zodal/ui`,
+`@zodal/ui-shadcn`) are installed from npm as version-pinned dependencies, so
+`pnpm install` is all the build needs — no sibling checkouts, and CI / the
+deploy runner build the frontend without the ecosystem's local layout. A
+developer actively editing zodal in place can `pnpm link` it locally without
+committing that.
 
-`vite.config.ts` sets `resolve.dedupe` so the linked packages share this
-app's single copy of React and zod.
+`vite.config.ts` sets `resolve.dedupe` so the app and the zodal packages
+share a single copy of React and zod.
 
 ## Tech
 

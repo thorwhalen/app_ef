@@ -1,0 +1,115 @@
+name: CI
+
+# Validates every change, and — on a push to main — triggers a production
+# deploy of app_ef to apps.thorwhalen.com via tw_platform's deploy workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs for the same branch / PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend (typecheck + e2e + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      # The @zodal/* packages are plain npm dependencies (version-pinned), so a
+      # bare install is all the frontend build needs — no sibling checkouts.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (app)
+        run: pnpm typecheck
+
+      - name: Typecheck (e2e)
+        run: pnpm typecheck:e2e
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: pnpm test:e2e
+
+      # Build with the same env vars tw_platform injects at deploy time, so a
+      # green CI build is a faithful preview of the production build.
+      - name: Production build
+        env:
+          VITE_API_BASE: /api/app_ef
+          VITE_PUBLIC_BASE: /app_ef/
+        run: pnpm build
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
+
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Installs the backend plus ef + qh from PyPI (the .pth manifest that
+      # shadows them in local dev is absent here) and the test extra.
+      - name: Install backend and dependencies
+        run: pip install -e '.[test]'
+
+      - name: Tests
+        run: pytest
+
+  deploy:
+    name: Trigger tw_platform deploy
+    needs: [frontend, backend]
+    # Only a real push to main deploys — never a pull request.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # deploy.py (in tw_platform) is the single source of deploy truth. This
+      # job only triggers it; the deploy itself runs in tw_platform's Actions.
+      # TW_PLATFORM_DEPLOY_TOKEN must grant Actions: write on tw_platform.
+      - name: Trigger tw_platform deploy workflow
+        env:
+          GH_TOKEN: ${{ secrets.TW_PLATFORM_DEPLOY_TOKEN }}
+        run: |
+          gh workflow run deploy.yml \
+            --repo thorwhalen/tw_platform \
+            --ref main \
+            -f platform=thorwhalen \
+            -f app=app_ef

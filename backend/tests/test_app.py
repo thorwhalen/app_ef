@@ -179,3 +179,85 @@ def test_build_app_default_embedder_is_used_for_new_corpora():
     client.post("/create_corpus", json={"sources": SOURCES, "corpus_id": "c"})
     info = client.post("/corpus_info", json={"corpus_id": "c"}).json()
     assert info["embedder"] == "hashing:v1@512"
+
+
+# ---------------------------------------------------------------------------
+# bring-your-own-key — the X-OpenAI-Key request header
+# ---------------------------------------------------------------------------
+
+
+class _KeyCapturingService(EfService):
+    """An ``EfService`` that records the ``embedder_api_key`` ``create_corpus`` got.
+
+    The override mirrors :meth:`EfService.create_corpus`'s signature exactly so
+    ``qh`` introspects the real parameters (the ``X-OpenAI-Key`` header maps
+    onto ``embedder_api_key``), then delegates to the real implementation —
+    offline, on the hashing default.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()  # hashing default — offline
+        self.seen_api_key: str | None = None
+        self.create_corpus_called = False
+
+    def create_corpus(
+        self,
+        sources: list[str],
+        *,
+        embedder: str | None = None,
+        segmenter: str | None = None,
+        corpus_id: str | None = None,
+        embedder_api_key: str | None = None,
+    ):
+        self.create_corpus_called = True
+        self.seen_api_key = embedder_api_key
+        return super().create_corpus(
+            sources,
+            embedder=embedder,
+            segmenter=segmenter,
+            corpus_id=corpus_id,
+            embedder_api_key=embedder_api_key,
+        )
+
+
+def test_x_openai_key_header_threads_to_create_corpus():
+    """The X-OpenAI-Key request header reaches create_corpus's embedder_api_key."""
+    service = _KeyCapturingService()
+    client = TestClient(build_app(service=service))
+
+    response = client.post(
+        "/create_corpus",
+        json={"sources": SOURCES, "corpus_id": "byok"},
+        headers={"X-OpenAI-Key": "sk-from-header"},
+    )
+    assert response.status_code == 200
+    assert service.seen_api_key == "sk-from-header"
+
+
+def test_create_corpus_without_the_header_is_keyless():
+    """No X-OpenAI-Key header → embedder_api_key is None; the corpus still builds."""
+    service = _KeyCapturingService()
+    client = TestClient(build_app(service=service))
+
+    response = client.post(
+        "/create_corpus", json={"sources": SOURCES, "corpus_id": "keyless"}
+    )
+    assert response.status_code == 200
+    assert service.create_corpus_called
+    assert service.seen_api_key is None
+
+
+def test_embedder_api_key_is_absent_from_the_request_schema():
+    """The header-mapped key is excluded from the create_corpus request body.
+
+    It may surface in the human-readable endpoint ``description`` and in ``qh``'s
+    ``x-python-signature`` extension — neither of which the TypeScript client
+    generator turns into a type — but never in the ``requestBody`` schema or in
+    ``components``, so the generated request-body type does not carry it.
+    """
+    import json
+
+    schema = _client().get("/openapi.json").json()
+    request_body = schema["paths"]["/create_corpus"]["post"]["requestBody"]
+    assert "embedder_api_key" not in json.dumps(request_body)
+    assert "embedder_api_key" not in json.dumps(schema.get("components", {}))
